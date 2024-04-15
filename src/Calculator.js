@@ -1,4 +1,4 @@
-import { memo, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import clickSound from "./ClickSound.m4a";
 
 function Calculator({ workouts, allowSound }) {
@@ -6,16 +6,63 @@ function Calculator({ workouts, allowSound }) {
   const [sets, setSets] = useState(3);
   const [speed, setSpeed] = useState(90);
   const [durationBreak, setDurationBreak] = useState(5);
+  const [duration, setDuration] = useState(0);
 
-  const duration = (number * sets * speed) / 60 + (sets - 1) * durationBreak;
+  // const playSound = useCallback(
+  //   function () {
+  //     if (!allowSound) return;
+  //     // Audio is a browser feature
+  //     const sound = new Audio(clickSound);
+  //     sound.play();
+  //   },
+  //   [allowSound]
+  // );
+
+  // Not always the best solution - useEffect rec
+  // In this case we have to use useEffect otherwise we have to use four event handler functions for each state change to setDuration
+  // The downside of this is change a state will give 2 renders, 1 for state change and another for useEffect execute after the render execute another re-render
+  // Setting the duration
+  useEffect(
+    function () {
+      setDuration((number * sets * speed) / 60 + (sets - 1) * durationBreak);
+    },
+    [number, sets, speed, durationBreak]
+  );
+
+  // one effect for each sife effect we want to have
+  // Playing a sound
+  useEffect(
+    function () {
+      const playSound = function () {
+        if (!allowSound) return;
+        // Audio is a browser feature
+        const sound = new Audio(clickSound);
+        sound.play();
+      };
+      playSound();
+    },
+
+    [duration, allowSound]
+  );
+
+  useEffect(
+    function () {
+      document.title = `Your ${number}-exercise workout`;
+    },
+    [number]
+  );
+
+  // const duration = (number * sets * speed) / 60 + (sets - 1) * durationBreak;
   const mins = Math.floor(duration);
   const seconds = (duration - mins) * 60;
 
-  const playSound = function () {
-    if (!allowSound) return;
-    const sound = new Audio(clickSound);
-    sound.play();
-  };
+  function handleInc() {
+    setDuration((duration) => Math.floor(duration) + 1);
+  }
+
+  function handleDec() {
+    setDuration((duration) => (duration > 1 ? Math.ceil(duration) - 1 : 0));
+  }
 
   return (
     <>
@@ -66,13 +113,13 @@ function Calculator({ workouts, allowSound }) {
         </div>
       </form>
       <section>
-        <button onClick={() => {}}>–</button>
+        <button onClick={handleDec}>–</button>
         <p>
           {mins < 10 && "0"}
           {mins}:{seconds < 10 && "0"}
           {seconds}
         </p>
-        <button onClick={() => {}}>+</button>
+        <button onClick={handleInc}>+</button>
       </section>
     </>
   );
